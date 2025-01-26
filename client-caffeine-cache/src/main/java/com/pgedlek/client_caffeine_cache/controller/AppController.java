@@ -46,4 +46,14 @@ public class AppController {
             }
         });
     }
+
+    @GetMapping(value = "/profile/clear-cache")
+    public void clearAllCache() {
+        caffeineCache.invalidateAll();
+    }
+
+    @GetMapping(value = "/profile/clear-cache/{profileId}")
+    public void clearSpecificKey(@PathVariable Long profileId) {
+        caffeineCache.invalidate(profileId);
+    }
 }
