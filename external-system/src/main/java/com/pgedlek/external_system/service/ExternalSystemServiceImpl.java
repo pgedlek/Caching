@@ -24,4 +24,24 @@ public class ExternalSystemServiceImpl implements ExternalSystemService {
         // delay added to simulate retrieving from DB
         return profile.delayElement(Duration.of(1L, ChronoUnit.SECONDS));
     }
+
+    @Override
+    public Mono<Profile> addProfile(Profile profile) {
+        Optional<Profile> profileFromDb = externalSystemRepository.addProfile(profile);
+
+        Mono<Profile> profileMono = profileFromDb.map(Mono::just).orElseGet(Mono::empty);
+
+        // delay added to simulate retrieving from DB
+        return profileMono.delayElement(Duration.of(1L, ChronoUnit.SECONDS));
+    }
+
+    @Override
+    public Mono<Profile> updateProfile(Long profileId, Profile profile) {
+        Optional<Profile> profileFromDb = externalSystemRepository.updateProfile(profileId, profile);
+
+        Mono<Profile> profileMono = profileFromDb.map(Mono::just).orElseGet(Mono::empty);
+
+        // delay added to simulate retrieving from DB
+        return profileMono.delayElement(Duration.of(1L, ChronoUnit.SECONDS));
+    }
 }

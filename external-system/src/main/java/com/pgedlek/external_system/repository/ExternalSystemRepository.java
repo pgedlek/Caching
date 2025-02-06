@@ -6,4 +6,8 @@ import java.util.Optional;
 
 public interface ExternalSystemRepository {
     Optional<Profile> getProfileById(Long profileId);
+
+    Optional<Profile> addProfile(Profile profile);
+
+    Optional<Profile> updateProfile(Long profileId, Profile profile);
 }

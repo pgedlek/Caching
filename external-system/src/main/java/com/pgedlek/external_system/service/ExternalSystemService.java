@@ -5,4 +5,8 @@ import reactor.core.publisher.Mono;
 
 public interface ExternalSystemService {
     Mono<Profile> getProfile(Long profileId);
+
+    Mono<Profile> addProfile(Profile profile);
+
+    Mono<Profile> updateProfile(Long profileId, Profile profile);
 }
