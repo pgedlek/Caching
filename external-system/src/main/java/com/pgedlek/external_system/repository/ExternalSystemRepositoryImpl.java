@@ -19,6 +19,11 @@ public class ExternalSystemRepositoryImpl implements ExternalSystemRepository {
     private Integer id = db.size();
 
     @Override
+    public List<Profile> getAllProfiles() {
+        return db;
+    }
+
+    @Override
     public Optional<Profile> getProfileById(Long profileId) {
         return db.stream()
                 .filter(profile -> Objects.equals(profileId, profile.getProfileId()))

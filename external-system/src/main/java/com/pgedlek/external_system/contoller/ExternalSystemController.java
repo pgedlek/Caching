@@ -3,11 +3,12 @@ package com.pgedlek.external_system.contoller;
 import com.pgedlek.external_system.model.Profile;
 import com.pgedlek.external_system.service.ExternalSystemService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
@@ -17,6 +18,13 @@ import static org.springframework.http.HttpStatus.OK;
 @RequiredArgsConstructor
 public class ExternalSystemController {
     private final ExternalSystemService externalSystemService;
+
+    @GetMapping("/profiles")
+    public Mono<ResponseEntity<List<Profile>>> getAllProfiles() {
+        return externalSystemService.getAllProfiles()
+                .map(list -> new ResponseEntity<>(list, OK))
+                .switchIfEmpty(Mono.just(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR)));
+    }
 
     @GetMapping("/profile/{profileId}")
     public Mono<ResponseEntity<Profile>> getProfile(@PathVariable Long profileId) {

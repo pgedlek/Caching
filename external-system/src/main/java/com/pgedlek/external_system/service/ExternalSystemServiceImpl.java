@@ -8,12 +8,18 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ExternalSystemServiceImpl implements ExternalSystemService {
     private final ExternalSystemRepository externalSystemRepository;
+
+    @Override
+    public Mono<List<Profile>> getAllProfiles() {
+        return Mono.just(externalSystemRepository.getAllProfiles());
+    }
 
     @Override
     public Mono<Profile> getProfile(Long profileId) {
