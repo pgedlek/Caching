@@ -61,6 +61,7 @@ public class AppService {
                 .body(BodyInserters.fromValue(profile))
                 .retrieve()
                 .bodyToMono(Profile.class)
+                .doOnNext(createdProfile -> caffeineCache.put(createdProfile.profileId(), createdProfile))
                 .onErrorResume(e -> {
                     log.error("Error adding profile: " + e.getMessage());
                     return Mono.empty();
@@ -74,9 +75,9 @@ public class AppService {
                 .body(BodyInserters.fromValue(profile))
                 .retrieve()
                 .bodyToMono(Profile.class)
-                .doOnNext(retrievedProfile -> {
+                .doOnNext(updatedProfile -> {
                     caffeineCache.invalidate(profileId);
-                    caffeineCache.put(profileId, retrievedProfile);
+                    caffeineCache.put(profileId, updatedProfile);
                 })
                 .onErrorResume(e -> {
                     log.error("Error updating profile: " + e.getMessage());
