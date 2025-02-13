@@ -7,7 +7,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -23,13 +24,72 @@ public class AppService {
             .build();
     private static final Cache<Long, Profile> caffeineCache = Caffeine.newBuilder()
             .maximumSize(100)
-            .expireAfterWrite(1, TimeUnit.MINUTES)
+            .expireAfterWrite(60, TimeUnit.MINUTES)
             .build();
     private final ScheduledExecutorService scheduler;
 
     public AppService() {
         scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleAtFixedRate(this::refreshCache, 0, 1, TimeUnit.MINUTES);
+        scheduler.scheduleAtFixedRate(this::refreshCache, 60, 60, TimeUnit.MINUTES);
+    }
+
+    public Mono<Profile> getProfile(Long profileId) {
+        return Mono.defer(() -> {
+            Profile cachedProfile = caffeineCache.getIfPresent(profileId);
+            if (cachedProfile != null) {
+                log.info("Get profile from cache");
+                return Mono.just(cachedProfile);
+            } else {
+                log.info("Get profile from external system");
+                return webClient.get()
+                        .uri("/profile/{profileId}", profileId)
+                        .retrieve()
+                        .bodyToMono(Profile.class)
+                        .doOnNext(retrievedProfile -> caffeineCache.put(profileId, retrievedProfile))
+                        .onErrorResume(e -> {
+                            log.error("Error fetching profile: " + e.getMessage());
+                            return Mono.empty();
+                        });
+            }
+        });
+    }
+
+    public Mono<Profile> addProfile(Profile profile) {
+        return webClient.post()
+                .uri("/profile")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(profile))
+                .retrieve()
+                .bodyToMono(Profile.class)
+                .onErrorResume(e -> {
+                    log.error("Error adding profile: " + e.getMessage());
+                    return Mono.empty();
+                });
+    }
+
+    public Mono<Profile> updateProfile(Long profileId, Profile profile) {
+        return webClient.put()
+                .uri("/profile/{profileId}", profileId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(profile))
+                .retrieve()
+                .bodyToMono(Profile.class)
+                .doOnNext(retrievedProfile -> {
+                    caffeineCache.invalidate(profileId);
+                    caffeineCache.put(profileId, retrievedProfile);
+                })
+                .onErrorResume(e -> {
+                    log.error("Error updating profile: " + e.getMessage());
+                    return Mono.empty();
+                });
+    }
+
+    public void clearAllCaches() {
+        caffeineCache.invalidateAll();
+    }
+
+    public void clearSpecificKey(Long profileId) {
+        caffeineCache.invalidate(profileId);
     }
 
     @PostConstruct
@@ -55,35 +115,6 @@ public class AppService {
                     log.error("Error fetching profile: " + e.getMessage());
                     return Mono.empty();
                 }).block();
-    }
-
-    public Mono<?> getProfile(@PathVariable Long profileId) {
-        return Mono.defer(() -> {
-            Profile cachedProfile = caffeineCache.getIfPresent(profileId);
-            if (cachedProfile != null) {
-                log.info("Get profile from cache");
-                return Mono.just(cachedProfile);
-            } else {
-                log.info("Get profile from external system");
-                return webClient.get()
-                        .uri("/profile/{profileId}", profileId)
-                        .retrieve()
-                        .bodyToMono(Profile.class)
-                        .doOnNext(retrivedProfile -> caffeineCache.put(profileId, retrivedProfile))
-                        .onErrorResume(e -> {
-                            log.error("Error fetching profile: " + e.getMessage());
-                            return Mono.empty();
-                        });
-            }
-        });
-    }
-
-    public void clearAllCaches() {
-        caffeineCache.invalidateAll();
-    }
-
-    public void clearSpecificKey(@PathVariable Long profileId) {
-        caffeineCache.invalidate(profileId);
     }
 
     @PreDestroy
