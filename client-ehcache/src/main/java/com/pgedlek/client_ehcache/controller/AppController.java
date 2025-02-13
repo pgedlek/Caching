@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.cache.Cache;
-import javax.cache.CacheManager;
 import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.*;
@@ -17,7 +15,6 @@ import static org.springframework.http.HttpStatus.*;
 @RequiredArgsConstructor
 public class AppController {
     private final AppService appService;
-    private final CacheManager cacheManager;
 
     @GetMapping(value = "/profile/{profileId}")
     public ResponseEntity<?> getProfile(@PathVariable Long profileId) {
@@ -47,14 +44,14 @@ public class AppController {
     }
 
     @GetMapping(value = "/profile/clear-cache")
-    public void clearAllCache() {
-        Cache<Object, Object> profileCache = cacheManager.getCache("profile");
-        profileCache.removeAll();
+    public ResponseEntity<String> clearAllCaches() {
+        appService.clearAllCaches();
+        return new ResponseEntity<>("Cleared all caches successfully", OK);
     }
 
     @GetMapping(value = "/profile/clear-cache/{profileId}")
-    public void clearSpecificKey(@PathVariable Long profileId) {
-        Cache<Object, Object> profileCache = cacheManager.getCache("profile");
-        profileCache.remove(profileId);
+    public ResponseEntity<String> clearSpecificKey(@PathVariable Long profileId) {
+        appService.clearSpecificKey(profileId);
+        return new ResponseEntity<>(String.format("Cleared profile with id %d from cache successfully", profileId), OK);
     }
 }
